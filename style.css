@@ -34,12 +34,12 @@ input {
 
 }
 
-#search-form {
+#submit-form {
     display: grid;
     grid-template-columns: 1fr;
 }
 
-#search-form * {
+#submit-form * {
     border: none;
     border-radius: 0.5rem;
 }

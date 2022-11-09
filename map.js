@@ -1,5 +1,8 @@
 const sidebar = document.querySelector("#sidebar");
 
+// check if the device is mobile
+const isMobile = window.innerWidth <= 768 ? true : false;
+
 const phillyBounds = [-75.280266, 39.867004, -74.955763, 40.137992];
 // get philly center by averaging the bounds
 const phillyCenter = [
@@ -150,7 +153,7 @@ const geocoder = new MapboxGeocoder({
   accessToken: mapboxgl.accessToken, // Set the access token
   mapboxgl: mapboxgl, // Set the mapbox-gl instance
   marker: false, // Do not use the default marker style
-  placeholder: "Search Philly", //placeholer text for the search bar
+  placeholder: "Search Philladelphia", //placeholer text for the search bar
   bbox: phillyBounds, //limit search results to Philadelphia bounds
 });
 
@@ -168,10 +171,14 @@ map.on("mouseup", (e) => {
     .setLngLat(e.lngLat) // Marker [lng, lat] coordinates
     .addTo(map); // Add the marker to the map
 
-  sidebar.style.width = "25rem";
+  const shrinkAxis = isMobile ? "height" : "width";
+
+  sidebar.style[shrinkAxis] = "25rem";
 });
 
 map.on("mousedown", (e) => {
   // create a new market at the click location and then draw a line between the points
-  sidebar.style.width = "0rem";
+  const shrinkAxis = isMobile ? "height" : "width";
+
+  sidebar.style[shrinkAxis] = "0rem";
 });
