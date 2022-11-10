@@ -52,7 +52,7 @@ textarea,
 #description {
     /* height: 2rem; */
     padding: 0.5rem;
-    margin: 0.5rem;
+    margin: 0.25rem;
     background-color: black;
     color: white;
 }
@@ -103,7 +103,7 @@ textarea {
 .mapboxgl-ctrl-geocoder {
     background-color: black;
     color: white;
-    border-radius: 1rem;
+    border-radius: 1rem 0 0rem 1rem;
 }
 
 .mapboxgl-ctrl-geocoder * {
@@ -117,7 +117,10 @@ textarea {
 }
 
 #selected {
-    background-color: rgba(175, 233, 15, 0.877);
+    /* background-color: rgba(175, 233, 15, 0.877); */
+    /* background-color: rgb(98, 211, 32); */
+    /* add linear gradient for background */
+    background: linear-gradient(#e664642d, #9198e5);
 }
 
 /* add mobile media query selector */
@@ -126,10 +129,26 @@ textarea {
 
     #sidebar {
         width: 100vw;
-        /* border: 2px solid red; */
         bottom: 0rem;
         top: auto;
         margin: 0;
+        padding: 0;
 
     }
+
+    .add-new {
+        font-size: 1.75rem;
+        margin: 10px 0 15px 0;
+    }
+
+    .cancel {
+        font-size: 1.25rem;
+    }
+
+    .submit-form {
+        margin-bottom: 0;
+
+
+    }
+
 }

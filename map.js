@@ -5,7 +5,7 @@ const isMobile = window.innerWidth <= 768 ? true : false;
 
 // create a button that makes the sidebar visible and creates the form input
 const addNew = document.createElement("button");
-addNew.textContent = "+ Add new feature";
+addNew.textContent = isMobile ? "+" : "+ Add new feature";
 addNew.classList.add("add-new");
 
 // establish a global variable to store the form input of each form
@@ -134,7 +134,11 @@ addNew.addEventListener("click", () => {
     };
   });
 
-  sidebar.insertBefore(newForm, addNew);
+  if (!isMobile) {
+    sidebar.insertBefore(newForm, addNew);
+  } else {
+    sidebar.appendChild(newForm);
+  }
 });
 sidebar.appendChild(addNew);
 
@@ -187,9 +191,9 @@ map.on("load", () => {
     source: "requests",
     paint: {
       "circle-radius": 10,
-      "circle-color": "#007cbf",
+      "circle-color": "#9198e5",
       "circle-stroke-width": 1,
-      "circle-stroke-color": "#fff",
+      "circle-stroke-color": "#000000",
     },
   });
 
@@ -226,21 +230,35 @@ map.on("click", (e) => {
     return el.id === "selected";
   });
 
-  const featureType = selectedForm[0].getElementsByTagName("select")[0].value;
+  const featureType = selectedForm[0]?.getElementsByTagName("select")[0].value;
   //   create a new feature based on the type of feature the user wants to add
   if (featureType === "Point") {
-    const newPointsCollection = getCoordinates(e.lngLat, selectedForm);
+    const newPointsCollection = getCoordinates(e.lngLat, selectedForm, "Point");
     map.getSource("requests").setData(newPointsCollection);
   }
   if (featureType === "Line") {
+    const newPointsCollection = getCoordinates(
+      e.lngLat,
+      selectedForm,
+      "LineString"
+    );
+
+    console.log(newPointsCollection);
+    map.getSource("requests").setData(newPointsCollection);
   }
   if (featureType === "Polygon") {
+    const newPointsCollection = getCoordinates(
+      e.lngLat,
+      selectedForm,
+      "Polygon"
+    );
+    map.getSource("requests").setData(newPointsCollection);
   }
 });
 
-function getCoordinates(latlong, selectedForm) {
+function getCoordinates(latlong, selectedForm, type = "Point") {
   const currentCorrds = Object.values(latlong).map((coord) => {
-    return coord.toFixed(3);
+    return coord;
   });
 
   // get current coordinates from the selected form coordinate input
@@ -252,15 +270,16 @@ function getCoordinates(latlong, selectedForm) {
       : `${loggedCoordinates.value}, [${currentCorrds}]`;
   const newPointsCollection = {
     type: "FeatureCollection",
-    features: constructObject(loggedCoordinates.value),
+    features: constructObject(loggedCoordinates.value, type),
   };
-
   return newPointsCollection;
 }
 
-function constructObject(stringCoordinateArray) {
+function constructObject(stringCoordinateArray, type = "Point") {
   //   convert the string of coordinates to an array of arrays
   const newPoints = [];
+
+  const multiPointFeature = [];
 
   stringCoordinateArray.split(", ").map((el) => {
     const array = el
@@ -269,28 +288,42 @@ function constructObject(stringCoordinateArray) {
       .split(",")
       .map((elc) => Number(elc));
 
+    if (type !== "Point") {
+      multiPointFeature.push(array);
+    } else {
+      const newFeature = {};
+      newFeature.type = "Feature";
+      newFeature.properties = {};
+      newFeature.geometry = {};
+      newFeature.geometry.type = type;
+      newFeature.geometry.coordinates = array;
+      newPoints.push(newFeature);
+    }
+  });
+
+  if (type !== "Point") {
     const newFeature = {};
     newFeature.type = "Feature";
     newFeature.properties = {};
     newFeature.geometry = {};
-    newFeature.geometry.type = "Point";
-    newFeature.geometry.coordinates = array;
+    newFeature.geometry.type = type;
+    newFeature.geometry.coordinates = [multiPointFeature];
     newPoints.push(newFeature);
-  });
+  }
   return newPoints;
 }
 
 // add on hover events for points on the map
-map.on("mousemove", "requests", (e) => {
-  console.log(e);
-  // Change the cursor style as a UI indicator.
-  map.getCanvas().style.cursor = "pointer";
+// map.on("mousemove", "requests", (e) => {
+//   console.log(e);
+//   // Change the cursor style as a UI indicator.
+//   map.getCanvas().style.cursor = "pointer";
 
-  // Populate the popup and set its coordinates
-  // based on the feature found.
-  const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(
-    `<h3>${e.features[0].properties.description}</h3><img src="${e.features[0].properties.image}" alt="image of request" style="width: 100px; height: 100px; object-fit: cover;"/>`
-  );
+//   // Populate the popup and set its coordinates
+//   // based on the feature found.
+//   const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(
+//     `<h3>${e.features[0].properties.description}</h3><img src="${e.features[0].properties.image}" alt="image of request" style="width: 100px; height: 100px; object-fit: cover;"/>`
+//   );
 
-  popup.addTo(map);
-});
+//   popup.addTo(map);
+// });
