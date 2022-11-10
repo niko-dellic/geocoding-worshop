@@ -3,6 +3,143 @@ const sidebar = document.querySelector("#sidebar");
 // check if the device is mobile
 const isMobile = window.innerWidth <= 768 ? true : false;
 
+// create a button that makes the sidebar visible and creates the form input
+const addNew = document.createElement("button");
+addNew.textContent = "+ Add new feature";
+addNew.classList.add("add-new");
+
+// establish a global variable to store the form input of each form
+const formInput = [];
+
+// add listener to add new form on click of addnew
+addNew.addEventListener("click", () => {
+  const newForm = document.createElement("form");
+
+  //   add the form to formInput array
+  formInput.push(newForm);
+
+  newForm.classList.add("submit-form");
+
+  const currentSelect = document.querySelector("#selected");
+  if (!currentSelect) {
+    newForm.id = "selected";
+  }
+
+  // add onclick function for form that adds a new object to the newFeatureObjects array
+  newForm.addEventListener("click", (e) => {
+    // if a different form has been selected, remove the selected class
+    if (currentSelect && currentSelect !== e.target) {
+      currentSelect.id = "";
+    }
+    newForm.id = "selected";
+  });
+
+  //   add a cancel button to the form
+  const cancel = document.createElement("button");
+  cancel.textContent = "- Cancel";
+  cancel.classList.add("cancel");
+  cancel.addEventListener("click", () => {
+    // if the form is selected, reassign the selected class to the first form
+    if (newForm.id === "selected") {
+      const forms = document.querySelectorAll(".submit-form");
+      forms[0].id = "selected";
+    }
+    newForm.remove();
+    map.getSource("requests").setData({
+      type: "FeatureCollection",
+      features: [],
+    });
+    // clear the values
+    formInput.forEach((form) => {
+      form.reset();
+    });
+    console.log("bye");
+  });
+
+  // add the exit to the form
+  newForm.appendChild(cancel);
+
+  // add a short description to the sidebar to explain how the user should fill out the form
+  const description = document.createElement("a");
+  description.id = "description";
+  description.textContent = "Click on the map to start adding new features.";
+  description.classList.add("description");
+  newForm.appendChild(description);
+
+  //   add three inputs to the form based on an array of objects and a submit button
+  const inputs = [
+    {
+      placeholder: "Description",
+      type: "textarea",
+    },
+    {
+      placeholder: "Feature Type",
+      type: "select",
+    },
+    {
+      placeholder: "Coordinates",
+      type: "textarea",
+    },
+    {
+      placeholder: "File",
+      type: "file",
+    },
+    {
+      placeholder: "Submit",
+      type: "submit",
+    },
+  ];
+
+  inputs.forEach((input) => {
+    const inputContainer = document.createElement(input.type);
+    inputContainer.setAttribute("type", input.type);
+    // geometry type
+    if (input.type === "select") {
+      const options = ["Point", "Line", "Polygon"];
+      options.forEach((option) => {
+        const optionElement = document.createElement("option");
+        optionElement.setAttribute("value", option);
+        optionElement.textContent = option;
+        inputContainer.appendChild(optionElement);
+      });
+    }
+
+    inputContainer.setAttribute("placeholder", input.placeholder);
+    inputContainer.setAttribute("name", input.placeholder);
+    //   add rows and cols
+    if (input.type === "textarea") {
+      inputContainer.setAttribute("rows", 3);
+      inputContainer.setAttribute("cols", 30);
+    }
+    inputContainer.id = input.placeholder;
+    newForm.appendChild(inputContainer);
+  });
+
+  // add submit function to submit button
+  newForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const description = document.querySelector("#Description").value;
+    const coordinates = document.querySelector("#Coordinates").value;
+    const image = document.querySelector("#Image").value;
+    const newFeature = {
+      type: "Feature",
+      properties: {
+        description: description,
+        image: image,
+      },
+      geometry: {
+        type: "Point",
+        coordinates: coordinates.split(","),
+      },
+    };
+  });
+
+  sidebar.insertBefore(newForm, addNew);
+});
+sidebar.appendChild(addNew);
+
+// time to map the data
+// limit the bounds to the center of philly
 const phillyBounds = [-75.280266, 39.867004, -74.955763, 40.137992];
 // get philly center by averaging the bounds
 const phillyCenter = [
@@ -23,7 +160,7 @@ const map = new mapboxgl.Map({
 // stylize the globe effect
 map.on("style.load", () => {
   map.setFog({
-    range: [2, 2],
+    range: [1, 7],
     color: "#d6fffc",
     // color: "#aaf0d1",
     "horizon-blend": 0.03,
@@ -36,116 +173,37 @@ map.on("style.load", () => {
 const pointData = [phillyCenter];
 // add source after map load
 map.on("load", () => {
-  // Add a geojson point source.
-  // Heatmap layers also work with a vector tile source.
-  map.addSource("earthquakes", {
-    type: "geojson",
-    data: "https://docs.mapbox.com/mapbox-gl-js/assets/earthquakes.geojson",
-  });
-
   map.addSource("requests", {
-    type: "circle",
-    data: pointData,
+    type: "geojson",
+    data: {
+      type: "FeatureCollection",
+      features: [],
+    },
   });
 
   map.addLayer({
     id: "requests",
     type: "circle",
     source: "requests",
+    paint: {
+      "circle-radius": 10,
+      "circle-color": "#007cbf",
+      "circle-stroke-width": 1,
+      "circle-stroke-color": "#fff",
+    },
   });
 
-  map.addLayer(
-    {
-      id: "earthquakes-heat",
-      type: "heatmap",
-      source: "earthquakes",
-      maxzoom: 9,
-      paint: {
-        // Increase the heatmap weight based on frequency and property magnitude
-        "heatmap-weight": [
-          "interpolate",
-          ["linear"],
-          ["get", "mag"],
-          0,
-          0,
-          6,
-          1,
-        ],
-        // Increase the heatmap color weight weight by zoom level
-        // heatmap-intensity is a multiplier on top of heatmap-weight
-        "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 0, 1, 9, 3],
-        // Color ramp for heatmap.  Domain is 0 (low) to 1 (high).
-        // Begin color ramp at 0-stop with a 0-transparancy color
-        // to create a blur-like effect.
-        "heatmap-color": [
-          "interpolate",
-          ["linear"],
-          ["heatmap-density"],
-          0,
-          "rgba(33,102,172,0)",
-          0.2,
-          "rgb(103,169,207)",
-          0.4,
-          "rgb(209,229,240)",
-          0.6,
-          "rgb(253,219,199)",
-          0.8,
-          "rgb(239,138,98)",
-          1,
-          "rgb(178,24,43)",
-        ],
-        // Adjust the heatmap radius by zoom level
-        "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 0, 2, 9, 20],
-        // Transition from heatmap to circle layer by zoom level
-        "heatmap-opacity": ["interpolate", ["linear"], ["zoom"], 7, 1, 9, 0],
-      },
+  //   add a line layer
+  map.addLayer({
+    id: "line",
+    type: "line",
+    source: "requests",
+    paint: {
+      "line-color": "yellow",
+      "line-opacity": 0.75,
+      "line-width": 5,
     },
-    "waterway-label"
-  );
-
-  map.addLayer(
-    {
-      id: "earthquakes-point",
-      type: "circle",
-      source: "earthquakes",
-      minzoom: 7,
-      paint: {
-        // Size circle radius by earthquake magnitude and zoom level
-        "circle-radius": [
-          "interpolate",
-          ["linear"],
-          ["zoom"],
-          7,
-          ["interpolate", ["linear"], ["get", "mag"], 1, 1, 6, 4],
-          16,
-          ["interpolate", ["linear"], ["get", "mag"], 1, 5, 6, 50],
-        ],
-        // Color circle by earthquake magnitude
-        "circle-color": [
-          "interpolate",
-          ["linear"],
-          ["get", "mag"],
-          1,
-          "rgba(33,102,172,0)",
-          2,
-          "rgb(103,169,207)",
-          3,
-          "rgb(209,229,240)",
-          4,
-          "rgb(253,219,199)",
-          5,
-          "rgb(239,138,98)",
-          6,
-          "rgb(178,24,43)",
-        ],
-        "circle-stroke-color": "white",
-        "circle-stroke-width": 1,
-        // Transition from heatmap to circle layer by zoom level
-        "circle-opacity": ["interpolate", ["linear"], ["zoom"], 7, 0, 8, 1],
-      },
-    },
-    "waterway-label"
-  );
+  });
 });
 
 const geocoder = new MapboxGeocoder({
@@ -161,24 +219,78 @@ const geocoder = new MapboxGeocoder({
 map.addControl(geocoder);
 
 // add event listener to the map that provides the lat and long of my click
-const newPoints = [];
+map.on("click", (e) => {
+  //   check to see the type of feature the user wants to add from the selected form
 
-map.on("mouseup", (e) => {
-  // add new marker to new points
-  newPoints.push(e.lngLat);
+  const selectedForm = formInput.filter((el) => {
+    return el.id === "selected";
+  });
 
-  const marker = new mapboxgl.Marker() // initialize a new marker
-    .setLngLat(e.lngLat) // Marker [lng, lat] coordinates
-    .addTo(map); // Add the marker to the map
-
-  const shrinkAxis = isMobile ? "height" : "width";
-
-  sidebar.style[shrinkAxis] = "25rem";
+  const featureType = selectedForm[0].getElementsByTagName("select")[0].value;
+  //   create a new feature based on the type of feature the user wants to add
+  if (featureType === "Point") {
+    const newPointsCollection = getCoordinates(e.lngLat, selectedForm);
+    map.getSource("requests").setData(newPointsCollection);
+  }
+  if (featureType === "Line") {
+  }
+  if (featureType === "Polygon") {
+  }
 });
 
-map.on("mousedown", (e) => {
-  // create a new market at the click location and then draw a line between the points
-  const shrinkAxis = isMobile ? "height" : "width";
+function getCoordinates(latlong, selectedForm) {
+  const currentCorrds = Object.values(latlong).map((coord) => {
+    return coord.toFixed(3);
+  });
 
-  sidebar.style[shrinkAxis] = "0rem";
+  // get current coordinates from the selected form coordinate input
+  const loggedCoordinates = selectedForm[0].querySelector("#Coordinates");
+
+  loggedCoordinates.value =
+    loggedCoordinates.value === ""
+      ? `[${currentCorrds}]`
+      : `${loggedCoordinates.value}, [${currentCorrds}]`;
+  const newPointsCollection = {
+    type: "FeatureCollection",
+    features: constructObject(loggedCoordinates.value),
+  };
+
+  return newPointsCollection;
+}
+
+function constructObject(stringCoordinateArray) {
+  //   convert the string of coordinates to an array of arrays
+  const newPoints = [];
+
+  stringCoordinateArray.split(", ").map((el) => {
+    const array = el
+      .replace("[", "")
+      .replace("]", "")
+      .split(",")
+      .map((elc) => Number(elc));
+
+    const newFeature = {};
+    newFeature.type = "Feature";
+    newFeature.properties = {};
+    newFeature.geometry = {};
+    newFeature.geometry.type = "Point";
+    newFeature.geometry.coordinates = array;
+    newPoints.push(newFeature);
+  });
+  return newPoints;
+}
+
+// add on hover events for points on the map
+map.on("mousemove", "requests", (e) => {
+  console.log(e);
+  // Change the cursor style as a UI indicator.
+  map.getCanvas().style.cursor = "pointer";
+
+  // Populate the popup and set its coordinates
+  // based on the feature found.
+  const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(
+    `<h3>${e.features[0].properties.description}</h3><img src="${e.features[0].properties.image}" alt="image of request" style="width: 100px; height: 100px; object-fit: cover;"/>`
+  );
+
+  popup.addTo(map);
 });
