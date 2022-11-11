@@ -26,7 +26,7 @@ body {
     cursor: grab;
 }
 
-
+input,
 textarea,
 button,
 #description {
@@ -34,6 +34,8 @@ button,
     border-radius: 5px;
     color: white;
     font-size: 0.75rem;
+    /* width: 95%; */
+
 }
 
 textarea {

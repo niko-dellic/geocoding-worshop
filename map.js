@@ -291,6 +291,24 @@ map.on("click", (e) => {
         const title = document.createElement("h3");
         title.textContent = location;
 
+        // create name and email input fields
+        const nameInput = document.createElement("input");
+        nameInput.setAttribute("type", "text");
+        nameInput.setAttribute("id", "name");
+        nameInput.setAttribute("placeholder", "name");
+        nameInput.addEventListener("input", (e) => {
+          newPoint.properties.name = e.target.value;
+        });
+
+        const emailInput = document.createElement("input");
+        emailInput.setAttribute("type", "email");
+        emailInput.setAttribute("id", "email");
+        emailInput.setAttribute("placeholder", "email");
+        emailInput.addEventListener("input", (e) => {
+          newPoint.properties.email = e.target.value;
+        });
+
+        // create description input
         const textarea = document.createElement("textarea");
         textarea.id = "description";
         textarea.placeholder = "description";
@@ -303,6 +321,8 @@ map.on("click", (e) => {
 
         htmlContainer.appendChild(title);
         htmlContainer.appendChild(textarea);
+        htmlContainer.appendChild(nameInput);
+        htmlContainer.appendChild(emailInput);
         htmlContainer.appendChild(submitButton);
 
         popup
