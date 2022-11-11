@@ -1,154 +1,27 @@
-const sidebar = document.querySelector("#sidebar");
+document.addEventListener("contextmenu", (event) => event.preventDefault()); //disable right click for map
 
-// check if the device is mobile
-const isMobile = window.innerWidth <= 768 ? true : false;
+// api key to access JotForm
+JF.initialize({ apiKey: "336b42c904dd34391b7e1c055286588b" });
 
-// create a button that makes the sidebar visible and creates the form input
-const addNew = document.createElement("button");
-addNew.textContent = isMobile ? "+" : "+ Add new feature";
-addNew.classList.add("add-new");
+// Import Layers
 
-// establish a global variable to store the form input of each form
-const formInput = [];
-
-// add listener to add new form on click of addnew
-addNew.addEventListener("click", () => {
-  const newForm = document.createElement("form");
-
-  //   add the form to formInput array
-  formInput.push(newForm);
-
-  newForm.classList.add("submit-form");
-
-  const currentSelect = document.querySelector("#selected");
-  if (!currentSelect) {
-    newForm.id = "selected";
-  }
-
-  // add onclick function for form that adds a new object to the newFeatureObjects array
-  newForm.addEventListener("click", (e) => {
-    // if a different form has been selected, remove the selected class
-    if (currentSelect && currentSelect !== e.target) {
-      currentSelect.id = "";
-    }
-    newForm.id = "selected";
-  });
-
-  //   add a cancel button to the form
-  const cancel = document.createElement("button");
-  cancel.textContent = "- Cancel";
-  cancel.classList.add("cancel");
-  cancel.addEventListener("click", () => {
-    // if the form is selected, reassign the selected class to the first form
-    if (newForm.id === "selected") {
-      const forms = document.querySelectorAll(".submit-form");
-      forms[0].id = "selected";
-    }
-    newForm.remove();
-    map.getSource("requests").setData({
-      type: "FeatureCollection",
-      features: [],
-    });
-    // clear the values
-    formInput.forEach((form) => {
-      form.reset();
-    });
-    console.log("bye");
-  });
-
-  // add the exit to the form
-  newForm.appendChild(cancel);
-
-  // add a short description to the sidebar to explain how the user should fill out the form
-  const description = document.createElement("a");
-  description.id = "description";
-  description.textContent = "Click on the map to start adding new features.";
-  description.classList.add("description");
-  newForm.appendChild(description);
-
-  //   add three inputs to the form based on an array of objects and a submit button
-  const inputs = [
-    {
-      placeholder: "Description",
-      type: "textarea",
-    },
-    {
-      placeholder: "Feature Type",
-      type: "select",
-    },
-    {
-      placeholder: "Coordinates",
-      type: "textarea",
-    },
-    {
-      placeholder: "File",
-      type: "file",
-    },
-    {
-      placeholder: "Submit",
-      type: "submit",
-    },
-  ];
-
-  inputs.forEach((input) => {
-    const inputContainer = document.createElement(input.type);
-    inputContainer.setAttribute("type", input.type);
-    // geometry type
-    if (input.type === "select") {
-      const options = ["Point", "Line", "Polygon"];
-      options.forEach((option) => {
-        const optionElement = document.createElement("option");
-        optionElement.setAttribute("value", option);
-        optionElement.textContent = option;
-        inputContainer.appendChild(optionElement);
-      });
-    }
-
-    inputContainer.setAttribute("placeholder", input.placeholder);
-    inputContainer.setAttribute("name", input.placeholder);
-    //   add rows and cols
-    if (input.type === "textarea") {
-      inputContainer.setAttribute("rows", 3);
-      inputContainer.setAttribute("cols", 30);
-    }
-    inputContainer.id = input.placeholder;
-    newForm.appendChild(inputContainer);
-  });
-
-  // add submit function to submit button
-  newForm.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const description = document.querySelector("#Description").value;
-    const coordinates = document.querySelector("#Coordinates").value;
-    const image = document.querySelector("#Image").value;
-    const newFeature = {
-      type: "Feature",
-      properties: {
-        description: description,
-        image: image,
-      },
-      geometry: {
-        type: "Point",
-        coordinates: coordinates.split(","),
-      },
-    };
-  });
-
-  if (!isMobile) {
-    sidebar.insertBefore(newForm, addNew);
-  } else {
-    sidebar.appendChild(newForm);
-  }
-});
-sidebar.appendChild(addNew);
+// mapbox access token
+mapboxgl.accessToken =
+  "pk.eyJ1Ijoibmlrby1kZWxsaWMiLCJhIjoiY2w5c3p5bGx1MDh2eTNvcnVhdG0wYWxkMCJ9.4uQZqVYvQ51iZ64yG8oong";
 
 // time to map the data
 // limit the bounds to the center of philly
 const phillyBounds = [-75.280266, 39.867004, -74.955763, 40.137992];
+const bostonBounds = [-71.191247, 42.227911, -70.648072, 42.450118];
 // get philly center by averaging the bounds
 const phillyCenter = [
   (phillyBounds[0] + phillyBounds[2]) / 2,
   (phillyBounds[1] + phillyBounds[3]) / 2,
+];
+
+const bostonCenter = [
+  (bostonBounds[0] + bostonBounds[2]) / 2,
+  (bostonBounds[1] + bostonBounds[3]) / 2,
 ];
 
 mapboxgl.accessToken =
@@ -156,7 +29,7 @@ mapboxgl.accessToken =
 const map = new mapboxgl.Map({
   container: "map", // Container ID
   style: "mapbox://styles/niko-dellic/cl9t226as000x14pr1hgle9az", // Map style to use
-  center: phillyCenter, // Starting position [lng, lat]
+  center: bostonCenter, // Starting position [lng, lat]
   zoom: 12, // Starting zoom level
   projection: "globe",
 });
@@ -174,156 +47,282 @@ map.on("style.load", () => {
   });
 });
 
-const pointData = [phillyCenter];
-// add source after map load
-map.on("load", () => {
-  map.addSource("requests", {
-    type: "geojson",
-    data: {
-      type: "FeatureCollection",
-      features: [],
-    },
-  });
-
-  map.addLayer({
-    id: "requests",
-    type: "circle",
-    source: "requests",
-    paint: {
-      "circle-radius": 10,
-      "circle-color": "#9198e5",
-      "circle-stroke-width": 1,
-      "circle-stroke-color": "#000000",
-    },
-  });
-
-  //   add a line layer
-  map.addLayer({
-    id: "line",
-    type: "line",
-    source: "requests",
-    paint: {
-      "line-color": "yellow",
-      "line-opacity": 0.75,
-      "line-width": 5,
-    },
-  });
-});
-
 const geocoder = new MapboxGeocoder({
   // Initialize the geocoder
   accessToken: mapboxgl.accessToken, // Set the access token
   mapboxgl: mapboxgl, // Set the mapbox-gl instance
-  marker: false, // Do not use the default marker style
-  placeholder: "Search Philladelphia", //placeholer text for the search bar
-  bbox: phillyBounds, //limit search results to Philadelphia bounds
+  placeholder: "Search Boston", //placeholer text for the search bar
+  bbox: bostonBounds, //limit search results to Philadelphia bounds
+});
+
+const reverseGeocoder = new MapboxGeocoder({
+  // Initialize the geocoder
+  accessToken: mapboxgl.accessToken, // Set the access token
+  mapboxgl: mapboxgl, // Set the mapbox-gl instance
+  reverseGeocode: true,
 });
 
 // Add the geocoder to the map
 map.addControl(geocoder);
+// map.addControl(reverseGeocoder);
 
-// add event listener to the map that provides the lat and long of my click
-map.on("click", (e) => {
-  //   check to see the type of feature the user wants to add from the selected form
+// get form submissions from JotForm Format: (formID, callback)
 
-  const selectedForm = formInput.filter((el) => {
-    return el.id === "selected";
+function getSubmissions() {
+  JF.getFormSubmissions("223144210321032", function (responses) {
+    console.log(responses);
+    // array to store all the submissions: we will use this to create the map
+    const submissions = [];
+    // for each responses
+    for (var i = 0; i < responses.length; i++) {
+      // create an object to store the submissions and structure as a json
+      const submissionProps = {};
+
+      submissionProps["type"] = "Feature";
+      submissionProps["geometry"] = {
+        type: "Point",
+      };
+      submissionProps["properties"] = {};
+
+      // add all fields of responses.answers to our object
+      const keys = Object.keys(responses[i].answers);
+      keys.forEach((answer) => {
+        let currentAnswer = responses[i].answers[answer].answer;
+        if (!currentAnswer) {
+          // delete the key if the answer is empty
+          delete responses[i].answers[answer];
+          return;
+        }
+        const lookup = "name";
+        const entry = responses[i].answers[answer].name;
+
+        if (entry === "latitude" || entry === "longitude") {
+          currentAnswer = parseFloat(currentAnswer);
+        }
+
+        submissionProps.properties[responses[i].answers[answer][lookup]] =
+          currentAnswer;
+      });
+
+      submissionProps.geometry["coordinates"] = [
+        submissionProps.properties.longitude,
+        submissionProps.properties.latitude,
+      ];
+
+      // add submission to submissions array
+      submissions.push(submissionProps);
+    }
+
+    // see if the source exists
+    if (map.getSource("submissions")) {
+      // update the source
+      map.getSource("submissions").setData({
+        type: "FeatureCollection",
+        features: submissions,
+      });
+    }
+
+    // add source after map load
+    map.on("load", () => {
+      map.addSource("submissions", {
+        type: "geojson",
+        data: {
+          type: "FeatureCollection",
+          features: submissions,
+        },
+      });
+
+      map.addLayer({
+        id: "submissions",
+        type: "circle",
+        source: "submissions",
+        paint: {
+          "circle-radius": 10,
+          "circle-color": "#9198e5",
+          "circle-stroke-width": 1,
+          "circle-stroke-color": "#000000",
+        },
+      });
+    });
   });
+}
 
-  const featureType = selectedForm[0]?.getElementsByTagName("select")[0].value;
-  //   create a new feature based on the type of feature the user wants to add
-  if (featureType === "Point") {
-    const newPointsCollection = getCoordinates(e.lngLat, selectedForm, "Point");
-    map.getSource("requests").setData(newPointsCollection);
-  }
-  if (featureType === "Line") {
-    const newPointsCollection = getCoordinates(
-      e.lngLat,
-      selectedForm,
-      "LineString"
-    );
+getSubmissions();
 
-    console.log(newPointsCollection);
-    map.getSource("requests").setData(newPointsCollection);
-  }
-  if (featureType === "Polygon") {
-    const newPointsCollection = getCoordinates(
-      e.lngLat,
-      selectedForm,
-      "Polygon"
-    );
-    map.getSource("requests").setData(newPointsCollection);
-  }
+const hoverPopup = new mapboxgl.Popup({
+  closeButton: false,
+  closeOnClick: false,
 });
 
-function getCoordinates(latlong, selectedForm, type = "Point") {
-  const currentCorrds = Object.values(latlong).map((coord) => {
-    return coord;
-  });
+const popup = new mapboxgl.Popup({
+  closeButton: true,
+  closeOnClick: true,
+});
 
-  // get current coordinates from the selected form coordinate input
-  const loggedCoordinates = selectedForm[0].querySelector("#Coordinates");
+// add a hover event that shows a hoverPopup with the description
+map.on("mouseenter", "submissions", (e) => {
+  // Change the cursor style as a UI indicator.
+  map.getCanvas().style.cursor = "pointer";
 
-  loggedCoordinates.value =
-    loggedCoordinates.value === ""
-      ? `[${currentCorrds}]`
-      : `${loggedCoordinates.value}, [${currentCorrds}]`;
-  const newPointsCollection = {
-    type: "FeatureCollection",
-    features: constructObject(loggedCoordinates.value, type),
-  };
-  return newPointsCollection;
-}
+  const coordinates = e.features[0].geometry.coordinates.slice();
 
-function constructObject(stringCoordinateArray, type = "Point") {
-  //   convert the string of coordinates to an array of arrays
-  const newPoints = [];
+  const htmlContainer = document.createElement("div");
+  const title = document.createElement("h3");
+  title.textContent = e.features[0].properties.placeName;
 
-  const multiPointFeature = [];
+  const description = document.createElement("p");
+  description.innerHTML = e.features[0].properties.description;
 
-  stringCoordinateArray.split(", ").map((el) => {
-    const array = el
-      .replace("[", "")
-      .replace("]", "")
-      .split(",")
-      .map((elc) => Number(elc));
+  htmlContainer.appendChild(title);
+  htmlContainer.appendChild(description);
 
-    if (type !== "Point") {
-      multiPointFeature.push(array);
-    } else {
-      const newFeature = {};
-      newFeature.type = "Feature";
-      newFeature.properties = {};
-      newFeature.geometry = {};
-      newFeature.geometry.type = type;
-      newFeature.geometry.coordinates = array;
-      newPoints.push(newFeature);
-    }
-  });
-
-  if (type !== "Point") {
-    const newFeature = {};
-    newFeature.type = "Feature";
-    newFeature.properties = {};
-    newFeature.geometry = {};
-    newFeature.geometry.type = type;
-    newFeature.geometry.coordinates = [multiPointFeature];
-    newPoints.push(newFeature);
+  // Ensure that if the map is zoomed out such that multiple
+  // copies of the feature are visible, the hoverPopup appears
+  // over the copy being pointed to.
+  while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+    coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
   }
-  return newPoints;
-}
 
-// add on hover events for points on the map
-// map.on("mousemove", "requests", (e) => {
-//   console.log(e);
-//   // Change the cursor style as a UI indicator.
-//   map.getCanvas().style.cursor = "pointer";
+  // Populate the hoverPopup and set its coordinates
+  // based on the feature found.
 
-//   // Populate the popup and set its coordinates
-//   // based on the feature found.
-//   const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(
-//     `<h3>${e.features[0].properties.description}</h3><img src="${e.features[0].properties.image}" alt="image of request" style="width: 100px; height: 100px; object-fit: cover;"/>`
-//   );
+  hoverPopup.setLngLat(coordinates).setHTML(htmlContainer.outerHTML).addTo(map);
+});
 
-//   popup.addTo(map);
-// });
+// hide the hoverPopup when the mouse leaves the layer
+map.on("mouseleave", "submissions", () => {
+  map.getCanvas().style.cursor = "";
+  hoverPopup.remove();
+});
+
+// create a global timeout that can be used to clear the timeout
+let timeout;
+
+// on click of the map add a new point to the map
+map.on("click", (e) => {
+  // createa new geojson object from click
+  const newPoint = {
+    type: "Feature",
+    geometry: {
+      type: "Point",
+      coordinates: [e.lngLat.lng, e.lngLat.lat],
+    },
+    properties: {
+      description: "new point",
+    },
+  };
+
+  //   add a new point to the map
+  if (map.getSource("newPoint")) {
+    map.getSource("newPoint").setData(newPoint);
+  } else {
+    map.addSource("newPoint", {
+      type: "geojson",
+      data: newPoint,
+    });
+
+    // add a new layer to the map
+    map.addLayer({
+      id: "newPoint",
+      type: "circle",
+      source: "newPoint",
+      paint: {
+        "circle-radius": 10,
+        "circle-color": "#f30",
+        "circle-stroke-width": 1,
+        "circle-stroke-color": "#000000",
+      },
+    });
+  }
+
+  //make callback function on submit to update the new point with the description and then submit to jotform
+  const updateDescription = (location) => {
+    // clear the existing timeout
+    clearTimeout(timeout);
+
+    // get the description from the input
+    const description = document.getElementById("description").value;
+    newPoint.properties.description = description;
+    newPoint.properties.placeName = location;
+
+    map.getSource("newPoint").setData(newPoint);
+    popup.remove();
+
+    // add a new jotform submission
+    const submission = new Object();
+
+    // name
+    submission[3] = newPoint.properties.name;
+    // email
+    submission[4] = newPoint.properties.email;
+    // place name
+    submission[5] = newPoint.properties.placeName;
+    // latitude
+    submission[6] = newPoint.geometry.coordinates[1];
+    // longitude
+    submission[7] = newPoint.geometry.coordinates[0];
+    // description
+    submission[9] = newPoint.properties.description;
+
+    JF.createFormSubmission("223144210321032", submission, function (response) {
+      console.log("submission response", response);
+
+      // assign a timeout to the global timeout variable
+      timeout = setTimeout(() => {
+        getSubmissions();
+      }, 2000);
+    });
+  };
+
+  async function getLocationName() {
+    // reverse geocode the point using fetch
+    await fetch(
+      `https://api.mapbox.com/geocoding/v5/mapbox.places/${e.lngLat.lng},${e.lngLat.lat}.json?access_token=${mapboxgl.accessToken}`
+    )
+      .then((response) => response.json())
+      .then((data) => {
+        const location = data.features[0].place_name
+          .split(",")
+          .slice(0, 2)
+          .join(",");
+
+        //   add a popup to the new point with a textarea input field
+        const htmlContainer = document.createElement("div");
+        const title = document.createElement("h3");
+        title.textContent = location;
+
+        const textarea = document.createElement("textarea");
+        textarea.id = "description";
+        textarea.placeholder = "description";
+        textarea.style.resize = "none";
+
+        // create submit button
+        const submitButton = document.createElement("button");
+        submitButton.id = "submit";
+        submitButton.textContent = "Submit";
+
+        htmlContainer.appendChild(title);
+        htmlContainer.appendChild(textarea);
+        htmlContainer.appendChild(submitButton);
+
+        popup
+          .setLngLat([e.lngLat.lng, e.lngLat.lat])
+          .setHTML(htmlContainer.outerHTML)
+          .addTo(map);
+
+        // get the newly added submit button and add a click event
+        const appendedSubmitButton = document.getElementById("submit");
+        appendedSubmitButton.addEventListener("click", function () {
+          updateDescription(location);
+        });
+      });
+  }
+  getLocationName();
+});
+
+// close popup on escape key
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    popup.remove();
+  }
+});
