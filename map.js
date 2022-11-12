@@ -1,35 +1,21 @@
-document.addEventListener("contextmenu", (event) => event.preventDefault()); //disable right click for map
+document.addEventListener("contextmenu", (event) => event.preventDefault()); //bonus: disable right click on the map
 
 // api key to access JotForm
 JF.initialize({ apiKey: "336b42c904dd34391b7e1c055286588b" });
-
-// Import Layers
 
 // mapbox access token
 mapboxgl.accessToken =
   "pk.eyJ1Ijoibmlrby1kZWxsaWMiLCJhIjoiY2w5c3p5bGx1MDh2eTNvcnVhdG0wYWxkMCJ9.4uQZqVYvQ51iZ64yG8oong";
 
-// time to map the data
-// limit the bounds to the center of philly
-const phillyBounds = [-75.280266, 39.867004, -74.955763, 40.137992];
+// limit the search engine boundary extent to the center of Boston
 const bostonBounds = [-71.191247, 42.227911, -70.648072, 42.450118];
-// get philly center by averaging the bounds
-const phillyCenter = [
-  (phillyBounds[0] + phillyBounds[2]) / 2,
-  (phillyBounds[1] + phillyBounds[3]) / 2,
-];
-
-const bostonCenter = [
-  (bostonBounds[0] + bostonBounds[2]) / 2,
-  (bostonBounds[1] + bostonBounds[3]) / 2,
-];
 
 mapboxgl.accessToken =
   "pk.eyJ1Ijoibmlrby1kZWxsaWMiLCJhIjoiY2w5c3p5bGx1MDh2eTNvcnVhdG0wYWxkMCJ9.4uQZqVYvQ51iZ64yG8oong";
 const map = new mapboxgl.Map({
   container: "map", // Container ID
   style: "mapbox://styles/niko-dellic/cl9t226as000x14pr1hgle9az", // Map style to use
-  center: bostonCenter, // Starting position [lng, lat]
+  center: [-71.09561, 42.3638], // Starting position [lng, lat]
   zoom: 12, // Starting zoom level
   projection: "globe",
 });
@@ -39,7 +25,6 @@ map.on("style.load", () => {
   map.setFog({
     range: [1, 7],
     color: "#d6fffc",
-    // color: "#aaf0d1",
     "horizon-blend": 0.03,
     "high-color": "#000000",
     "space-color": "#000000",
@@ -47,30 +32,20 @@ map.on("style.load", () => {
   });
 });
 
+// Initialize the geocoder aka the search engine
 const geocoder = new MapboxGeocoder({
-  // Initialize the geocoder
   accessToken: mapboxgl.accessToken, // Set the access token
   mapboxgl: mapboxgl, // Set the mapbox-gl instance
   placeholder: "Search Boston", //placeholer text for the search bar
   bbox: bostonBounds, //limit search results to Philadelphia bounds
 });
 
-const reverseGeocoder = new MapboxGeocoder({
-  // Initialize the geocoder
-  accessToken: mapboxgl.accessToken, // Set the access token
-  mapboxgl: mapboxgl, // Set the mapbox-gl instance
-  reverseGeocode: true,
-});
-
 // Add the geocoder to the map
 map.addControl(geocoder);
-// map.addControl(reverseGeocoder);
 
-// get form submissions from JotForm Format: (formID, callback)
-
+// Create a function to access the jotform submissions . Format: (formID, callback)
 function getSubmissions() {
   JF.getFormSubmissions("223144210321032", function (responses) {
-    console.log(responses);
     // array to store all the submissions: we will use this to create the map
     const submissions = [];
     // for each responses
@@ -147,13 +122,16 @@ function getSubmissions() {
   });
 }
 
+// immediately call the function to get the submissions
 getSubmissions();
 
+// create a popup on hover
 const hoverPopup = new mapboxgl.Popup({
   closeButton: false,
   closeOnClick: false,
 });
 
+// create a popup on click
 const popup = new mapboxgl.Popup({
   closeButton: true,
   closeOnClick: true,
@@ -166,13 +144,14 @@ map.on("mouseenter", "submissions", (e) => {
 
   const coordinates = e.features[0].geometry.coordinates.slice();
 
+  // create some HTML objects to render in the popup
   const htmlContainer = document.createElement("div");
   const title = document.createElement("h3");
   title.textContent = e.features[0].properties.placeName;
-
   const description = document.createElement("p");
   description.innerHTML = e.features[0].properties.description;
 
+  // append the HTML objects to the container
   htmlContainer.appendChild(title);
   htmlContainer.appendChild(description);
 
@@ -184,18 +163,18 @@ map.on("mouseenter", "submissions", (e) => {
   }
 
   // Populate the hoverPopup and set its coordinates
-  // based on the feature found.
-
   hoverPopup.setLngLat(coordinates).setHTML(htmlContainer.outerHTML).addTo(map);
 });
 
 // hide the hoverPopup when the mouse leaves the layer
 map.on("mouseleave", "submissions", () => {
+  // set the cursor back to default
   map.getCanvas().style.cursor = "";
+  // remove the hoverPopup
   hoverPopup.remove();
 });
 
-// create a global timeout that can be used to clear the timeout
+// create a global timeout that can be used to refresh the data on the map
 let timeout;
 
 // on click of the map add a new point to the map
@@ -208,19 +187,19 @@ map.on("click", (e) => {
       coordinates: [e.lngLat.lng, e.lngLat.lat],
     },
     properties: {
-      description: "new point",
+      description: "",
     },
   };
-
   //   add a new point to the map
   if (map.getSource("newPoint")) {
+    //if the source already exists, update the source
     map.getSource("newPoint").setData(newPoint);
   } else {
+    //if its the first time the user has clicked, add the source and layer
     map.addSource("newPoint", {
       type: "geojson",
       data: newPoint,
     });
-
     // add a new layer to the map
     map.addLayer({
       id: "newPoint",
@@ -237,20 +216,29 @@ map.on("click", (e) => {
 
   //make callback function on submit to update the new point with the description and then submit to jotform
   const updateDescription = (location) => {
-    // clear the existing timeout
+    /**
+     * this function will update the description of the new point and then submit the data to jotform.
+     * Since it is a function it will only trigger when called upon by the submit button.
+     * @param {string} location - the location of the new point
+     * @param {string} description - the description of the new point
+     * @param {object} submission - the submission object
+     */
+
+    // clear the existing timeout if it is about to trigger
     clearTimeout(timeout);
 
     // get the description from the input
     const description = document.getElementById("description").value;
     newPoint.properties.description = description;
     newPoint.properties.placeName = location;
+    // add name and email to newpoint
+    newPoint.properties.name = document.getElementById("name").value;
+    newPoint.properties.email = document.getElementById("email").value;
 
     map.getSource("newPoint").setData(newPoint);
-    popup.remove();
 
     // add a new jotform submission
     const submission = new Object();
-
     // name
     submission[3] = newPoint.properties.name;
     // email
@@ -264,14 +252,30 @@ map.on("click", (e) => {
     // description
     submission[9] = newPoint.properties.description;
 
-    JF.createFormSubmission("223144210321032", submission, function (response) {
-      console.log("submission response", response);
+    if (
+      // if everything has been filled out
+      newPoint.properties.description &&
+      newPoint.properties.name &&
+      newPoint.properties.email
+    ) {
+      // submit the data to jotform and remove the popup
+      popup.remove();
+      JF.createFormSubmission(
+        "223144210321032",
+        submission,
+        function (response) {
+          console.log("submission response", response);
 
-      // assign a timeout to the global timeout variable
-      timeout = setTimeout(() => {
-        getSubmissions();
-      }, 2000);
-    });
+          // assign a timeout to the global timeout variable and reload the map after 3 seconds
+          timeout = setTimeout(() => {
+            getSubmissions();
+          }, 3000);
+        }
+      );
+    } else {
+      alert("Please fill out all fields");
+      // assign a yellow outline to the popup
+    }
   };
 
   async function getLocationName() {
@@ -319,28 +323,31 @@ map.on("click", (e) => {
         submitButton.id = "submit";
         submitButton.textContent = "Submit";
 
+        // append all the elements to the html container
         htmlContainer.appendChild(title);
         htmlContainer.appendChild(textarea);
         htmlContainer.appendChild(nameInput);
         htmlContainer.appendChild(emailInput);
         htmlContainer.appendChild(submitButton);
 
+        // add the popup to the map
         popup
           .setLngLat([e.lngLat.lng, e.lngLat.lat])
           .setHTML(htmlContainer.outerHTML)
           .addTo(map);
 
-        // get the newly added submit button and add a click event
+        // get the newly added submit button and call the updateDescription function on click
         const appendedSubmitButton = document.getElementById("submit");
         appendedSubmitButton.addEventListener("click", function () {
           updateDescription(location);
         });
       });
   }
+  // call the getLocationName function, which triggers the popup and updateDescription function
   getLocationName();
 });
 
-// close popup on escape key
+// close the click popup when pressing the escape key
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
     popup.remove();
