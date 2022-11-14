@@ -125,6 +125,12 @@ function getSubmissions() {
 // immediately call the function to get the submissions
 getSubmissions();
 
+// create a popup for the basemap
+const basemapPopup = new mapboxgl.Popup({
+  closeButton: false,
+  closeOnClick: false,
+});
+
 // create a popup on hover
 const hoverPopup = new mapboxgl.Popup({
   closeButton: false,
@@ -135,6 +141,27 @@ const hoverPopup = new mapboxgl.Popup({
 const popup = new mapboxgl.Popup({
   closeButton: true,
   closeOnClick: true,
+});
+
+// create a function to capitalize the first letter of a string array
+function capitalizeFirstLetter(string) {
+  return string.charAt(0).toUpperCase() + string.slice(1);
+}
+
+// create a map.on mouse enter event for "road-simple" and "building" layers
+map.on("mousemove", "land-use", (e) => {
+  const info = e.features[0].properties.class
+    .split("_")
+    .map((word) => capitalizeFirstLetter(word))
+    .join(" ");
+  map.getCanvas().style.cursor = "pointer";
+
+  basemapPopup.setLngLat(e.lngLat).setHTML(`${info}`).addTo(map);
+});
+
+map.on("mouseleave", "land-use", () => {
+  map.getCanvas().style.cursor = "";
+  basemapPopup.remove();
 });
 
 // add a hover event that shows a hoverPopup with the description
